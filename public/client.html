@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="即梦图像与视频生成客户端" />
+  <title>即梦生成客户端</title>
+  <style>
+    :root { --bg:#07101d; --panel:rgba(15,29,49,.9); --line:rgba(160,195,225,.17); --text:#f5f8ff; --muted:#a9b9cf; --faint:#71849e; --primary:#638fff; --cyan:#55d6d1; --green:#58dda9; --yellow:#f4c76f; --red:#ff788d; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--text); background:radial-gradient(circle at 8% -10%,#234478 0,transparent 34%),radial-gradient(circle at 100% 0,#174c50 0,transparent 28%),var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+    button,input,textarea,select { font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.48; }
+    .wrap { width:min(1120px,calc(100% - 32px)); margin:0 auto; padding:28px 0 60px; }
+    .hero { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:20px; }
+    .eyebrow { color:var(--cyan); font-size:12px; font-weight:800; letter-spacing:.14em; }
+    h1 { margin:8px 0 10px; font-size:clamp(30px,5vw,48px); letter-spacing:-.05em; }
+    h2 { margin:0 0 8px; font-size:20px; }
+    p { margin:0; color:var(--muted); line-height:1.65; }
+    .back { color:var(--muted); text-decoration:none; border:1px solid var(--line); border-radius:10px; padding:9px 12px; white-space:nowrap; }
+    .notice,.panel,.step { border:1px solid var(--line); border-radius:18px; background:var(--panel); box-shadow:0 18px 50px rgba(0,0,0,.16); }
+    .notice { padding:14px 16px; margin-bottom:16px; color:#c2edf0; background:rgba(55,174,184,.08); font-size:13px; }
+    code { padding:2px 5px; border-radius:5px; color:#d4e1ff; background:rgba(3,9,18,.5); }
+    .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px; }
+    .step { padding:17px; }
+    .step-num { display:grid; place-items:center; width:28px; height:28px; margin-bottom:11px; border-radius:9px; background:linear-gradient(135deg,var(--primary),#8764ff); font-weight:800; }
+    .step p { font-size:13px; }
+    .panel { padding:22px; margin-bottom:16px; }
+    .panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:17px; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .field { margin-bottom:14px; }
+    label { display:block; margin-bottom:7px; color:var(--muted); font-size:13px; font-weight:700; }
+    input,textarea,select { width:100%; color:var(--text); background:rgba(3,9,18,.56); border:1px solid var(--line); border-radius:10px; outline:none; padding:11px 12px; }
+    textarea { min-height:118px; resize:vertical; }
+    input:focus,textarea:focus,select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(99,143,255,.14); }
+    .mode { display:flex; gap:8px; margin-bottom:16px; }
+    .mode button { border:1px solid var(--line); border-radius:10px; padding:10px 18px; color:var(--muted); background:rgba(135,160,200,.1); }
+    .mode button.active { color:white; border-color:rgba(99,143,255,.7); background:linear-gradient(135deg,var(--primary),#7352ed); }
+    .actions { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+    .btn { border:0; border-radius:10px; padding:11px 15px; color:white; font-weight:750; }
+    .primary { background:linear-gradient(135deg,var(--primary),#7352ed); }
+    .secondary { color:var(--muted); background:rgba(135,160,200,.1); border:1px solid var(--line); }
+    .status { min-height:22px; margin-top:12px; color:var(--faint); font-size:13px; }
+    .status.ok { color:var(--green); } .status.error { color:var(--red); } .status.loading { color:var(--yellow); }
+    .model-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; margin-top:15px; }
+    .model-card { padding:13px; border:1px solid var(--line); border-radius:12px; background:rgba(4,11,23,.38); }
+    .model-card strong,.model-card small { display:block; }
+    .model-card small { color:var(--faint); line-height:1.55; }
+    .chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:9px; }
+    .chip { padding:5px 8px; border-radius:999px; color:#b9c9e1; background:rgba(99,143,255,.11); border:1px solid rgba(99,143,255,.16); font-size:11px; }
+    .hint { color:var(--faint); font-size:12px; line-height:1.6; }
+    .result { display:none; } .result.show { display:block; }
+    .result-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+    .result-grid img,.result-grid video { width:100%; max-height:520px; object-fit:contain; border-radius:13px; background:#000; }
+    .download { display:inline-block; margin-top:10px; color:#bcd0ff; text-decoration:none; }
+    @media (max-width:720px) { .hero { flex-direction:column; } .steps,.grid { grid-template-columns:1fr; } .wrap { width:min(100% - 22px,1120px); padding-top:18px; } .panel { padding:16px; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div>
+        <div class="eyebrow">JIMENG LOCAL CLIENT</div>
+        <h1>即梦生成客户端</h1>
+        <p>这是基于当前项目真实 API 的局域网客户端。模型、参数和返回结果均按本地后端接口处理。</p>
+      </div>
+      <a class="back" href="/">管理后台</a>
+    </header>
+
+    <div class="notice"><strong>安全提示：</strong>这里只输入管理员创建的 <code>jm_...</code> 管理密钥。密钥仅保存在当前页面内存中，不要输入 Dreamina sessionid 或密码。</div>
+
+    <section class="steps">
+      <div class="step"><div class="step-num">1</div><strong>输入 Key</strong><p>使用管理后台创建的 API Key 获取当前模型。</p></div>
+      <div class="step"><div class="step-num">2</div><strong>选择模式</strong><p>客户端只调用项目已有的图像和视频生成接口。</p></div>
+      <div class="step"><div class="step-num">3</div><strong>提交生成</strong><p>后端同步返回结果，不使用不存在的任务队列接口。</p></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>连接本地服务</h2><p>模型请求：<code>GET /v1/models</code>，使用当前项目的鉴权方式。</p></div></div>
+      <div class="field"><label for="api-key">本地 API Key</label><input id="api-key" type="password" autocomplete="off" placeholder="jm_..." /></div>
+      <div class="actions"><button id="load-models" class="btn primary">读取模型</button><button id="clear-key" class="btn secondary" type="button">清除 Key</button></div>
+      <div id="key-status" class="status" role="status"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>生成设置</h2><p>请求体字段与 <code>/v1/images/generations</code>、<code>/v1/videos/generations</code> 保持一致。</p></div></div>
+      <div class="mode"><button id="image-mode" class="active" type="button">图像生成</button><button id="video-mode" type="button">视频生成</button></div>
+      <div class="grid">
+        <div class="field"><label for="model">模型</label><select id="model" disabled><option>请先读取模型</option></select></div>
+        <div class="field"><label for="resolution">分辨率</label><select id="resolution" disabled><option value="">使用后端默认</option></select></div>
+        <div class="field"><label for="ratio">比例</label><select id="ratio"><option value="">使用后端默认</option></select></div>
+        <div class="field" id="duration-field"><label for="duration">视频时长（秒）</label><input id="duration" type="number" min="1" max="15" step="1" placeholder="由后端决定" /></div>
+        <div class="field" id="count-field"><label for="count">生成张数 n（1-8）</label><input id="count" type="number" min="1" max="8" step="1" value="1" /></div>
+        <div class="field"><label for="reference-files">参考图（可选，最多 10 张）</label><input id="reference-files" type="file" accept="image/*" multiple /><div class="hint">浏览器会将图片转换为后端支持的 data URL。视频模式按顺序作为首尾帧/参考图传递。</div></div>
+      </div>
+      <div class="field"><label for="prompt">提示词</label><textarea id="prompt" placeholder="描述主体、动作、场景和风格"></textarea></div>
+      <div class="field" id="negative-field"><label for="negative-prompt">反向提示词（图像，可选）</label><input id="negative-prompt" placeholder="不希望出现的内容" /></div>
+      <div id="setting-status" class="status"></div>
+      <div class="actions"><button id="generate" class="btn primary" disabled>开始生成</button></div>
+      <div id="generate-status" class="status" role="status"></div>
+    </section>
+
+    <section id="models-panel" class="panel" hidden>
+      <div class="panel-head"><div><h2>后端返回的模型</h2><p>只展示本地服务实际返回的模型和支持分辨率。</p></div></div>
+      <div id="models" class="model-list"></div>
+    </section>
+
+    <section id="result" class="panel result">
+      <div class="panel-head"><div><h2>生成结果</h2><p>结果来自当前项目接口的 <code>data[].url</code>。</p></div></div>
+      <div id="result-grid" class="result-grid"></div>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let mode = 'image';
+    let apiKey = '';
+    let models = [];
+    let modelRequestId = 0;
+    let busy = false;
+    const imageRatios = ['21:9','16:9','3:2','4:3','1:1','3:4','2:3','9:16'];
+    const videoRatios = ['16:9','9:16','1:1','4:3','3:4','21:9'];
+
+    function status(id, text, type='') { $(id).textContent = text; $(id).className = `status ${type}`; }
+    function authHeaders(json=false) { return Object.assign({ Authorization: `Bearer ${apiKey}` }, json ? { 'Content-Type':'application/json' } : {}); }
+    async function parseResponse(res) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error?.message || data?.message || data?.error || `请求失败（${res.status}）`);
+      return data;
+    }
+    function currentModel() { return models.find(item => item.id === $('model').value); }
+    function setOptions(select, values, defaultLabel='使用后端默认') {
+      select.innerHTML = `<option value="">${defaultLabel}</option>`;
+      values.forEach(value => { const option = document.createElement('option'); option.value = value; option.textContent = value; select.appendChild(option); });
+    }
+    function renderModels() {
+      $('models').innerHTML = models.map(model => `<article class="model-card"><strong>${escapeHtml(model.name || model.id)}</strong><small>${escapeHtml(model.id || '')}</small><small>${escapeHtml(model.description || '')}</small><div class="chips">${(model.supported_resolutions || []).map(value => `<span class="chip">${escapeHtml(value)}</span>`).join('')}</div></article>`).join('');
+      $('models-panel').hidden = !models.length;
+    }
+    function applyModel() {
+      const model = currentModel();
+      setOptions($('resolution'), model?.supported_resolutions || []);
+      $('resolution').disabled = !model;
+      $('generate').disabled = busy || !(apiKey && model && $('prompt').value.trim());
+      status('setting-status', model ? '分辨率来自本地后端返回；比例和时长将按后端字段提交。' : '请先选择模型。', model ? 'ok' : '');
+    }
+    function updateMode(nextMode) {
+      mode = nextMode;
+      modelRequestId += 1;
+      models = [];
+      $('image-mode').classList.toggle('active', mode === 'image');
+      $('video-mode').classList.toggle('active', mode === 'video');
+      $('duration-field').hidden = mode !== 'video';
+      $('count-field').hidden = mode !== 'image';
+      $('negative-field').hidden = mode !== 'image';
+      $('model').innerHTML = '<option value="">请先读取模型</option>';
+      $('model').disabled = true;
+      $('models-panel').hidden = true;
+      setOptions($('ratio'), mode === 'image' ? imageRatios : videoRatios);
+      loadModels(false);
+    }
+    async function loadModels(refresh=true) {
+      if (!apiKey) { status('key-status','请先输入 API Key。','error'); return; }
+      const requestMode = mode;
+      const requestId = ++modelRequestId;
+      $('load-models').disabled = true;
+      status('key-status', `正在读取${requestMode === 'image' ? '图像' : '视频'}模型…`, 'loading');
+      try {
+        const query = `/v1/models?type=${requestMode}${refresh ? '&refresh=true' : ''}`;
+        const data = await parseResponse(await fetch(query, { headers: authHeaders() }));
+        if (requestId !== modelRequestId || requestMode !== mode) return;
+        models = Array.isArray(data.data) ? data.data : [];
+        if (!models.length) throw new Error('后端没有返回可用模型');
+        $('model').innerHTML = '<option value="">请选择模型</option>';
+        models.forEach(item => { const option = document.createElement('option'); option.value = item.id; option.textContent = `${item.name || item.id} · ${item.id}`; $('model').appendChild(option); });
+        $('model').value = models[0].id;
+        $('model').disabled = false;
+        renderModels(); applyModel();
+        status('key-status', `已读取 ${models.length} 个${requestMode === 'image' ? '图像' : '视频'}模型。`, 'ok');
+      } catch (error) {
+        if (requestId !== modelRequestId || requestMode !== mode) return;
+        models = []; $('model').innerHTML = '<option>读取失败</option>'; $('model').disabled = true; status('key-status', error.message || '模型读取失败', 'error');
+      } finally {
+        if (requestId === modelRequestId) $('load-models').disabled = false;
+      }
+    }
+    function readFiles() { return Promise.all(Array.from($('reference-files').files || []).slice(0,10).map(file => new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }))); }
+    function buildBody(referencePaths) {
+      const body = { model: $('model').value, prompt: $('prompt').value.trim(), response_format: 'url' };
+      if ($('resolution').value) body.resolution = $('resolution').value;
+      if ($('ratio').value) body.ratio = $('ratio').value;
+      if (mode === 'image') {
+        const count = Math.max(1, Math.min(8, Number($('count').value || 1)));
+        body.n = count;
+        if ($('negative-prompt').value.trim()) body.negative_prompt = $('negative-prompt').value.trim();
+        if (referencePaths.length) body.filePaths = referencePaths;
+      } else {
+        const duration = Number($('duration').value);
+        if (Number.isInteger(duration) && duration > 0) body.duration = duration;
+        if (referencePaths.length) body.file_paths = referencePaths;
+      }
+      return body;
+    }
+    function showResults(data) {
+      const items = Array.isArray(data.data) ? data.data : [];
+      $('result-grid').innerHTML = '';
+      items.forEach(item => { const url = item.url; if (!url) return; const node = mode === 'image' ? document.createElement('img') : document.createElement('video'); node.src = url; if (mode === 'video') { node.controls = true; node.playsInline = true; } $('result-grid').appendChild(node); const link = document.createElement('a'); link.className = 'download'; link.href = url; link.target = '_blank'; link.rel = 'noreferrer'; link.download = mode === 'image' ? 'jimeng-image' : 'jimeng-video'; link.textContent = '打开/下载'; $('result-grid').appendChild(link); });
+      if (!$('result-grid').children.length) throw new Error('接口返回成功，但没有 data[].url');
+      $('result').classList.add('show');
+    }
+    async function generate() {
+      if (!apiKey || !currentModel() || !$('prompt').value.trim()) return;
+      busy = true; $('generate').disabled = true; status('generate-status','正在生成，请等待后端同步返回结果…','loading');
+      try { const paths = await readFiles(); const endpoint = mode === 'image' ? '/v1/images/generations' : '/v1/videos/generations'; const data = await parseResponse(await fetch(endpoint, { method:'POST', headers:authHeaders(true), body:JSON.stringify(buildBody(paths)) })); showResults(data); status('generate-status','生成完成。','ok'); }
+      catch (error) { status('generate-status', error.message || '生成失败','error'); }
+      finally { busy = false; applyModel(); }
+    }
+    function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[char])); }
+    $('load-models').onclick = () => { apiKey = $('api-key').value.trim(); if (!/^jm_[A-Za-z0-9_-]{20,}$/.test(apiKey)) { status('key-status','请输入有效的 jm_ 管理密钥。','error'); return; } loadModels(true); };
+    $('clear-key').onclick = () => { apiKey=''; $('api-key').value=''; models=[]; $('model').innerHTML='<option>请先读取模型</option>'; $('model').disabled=true; $('models-panel').hidden=true; $('result').classList.remove('show'); $('result-grid').innerHTML=''; applyModel(); status('key-status','Key 已从当前页面内存中清除。'); };
+    $('image-mode').onclick = () => updateMode('image'); $('video-mode').onclick = () => updateMode('video'); $('model').onchange = applyModel; $('prompt').oninput = applyModel; $('generate').onclick = generate;
+    setOptions($('ratio'), imageRatios); $('duration-field').hidden = true; $('negative-field').hidden = false;
+  </script>
+</body>
+</html>

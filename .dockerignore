@@ -1,0 +1,42 @@
+# 版本控制
+.git
+.gitignore
+.gitattributes
+.github
+
+# 开发文件
+.vscode
+.idea
+*.log
+logs
+
+# 构建产物（会在容器内重新构建）
+dist
+node_modules
+
+# 运行时数据（账号池加密库、统计、日志）
+data
+*.db
+*.db-shm
+*.db-wal
+
+# 文档
+doc
+docs
+README.md
+LICENSE
+
+# 测试和示例
+qingqiu
+image
+*.test.*
+*.spec.*
+__tests__
+
+# 其他
+*.tar.gz
+*.zip
+.DS_Store
+Thumbs.db
+.env.local
+.env.development

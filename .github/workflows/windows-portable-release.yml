@@ -1,0 +1,68 @@
+name: Build Windows Portable Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to upload assets to. Leave empty to only build artifacts.
+        required: false
+        type: string
+
+jobs:
+  build-windows-portable:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify portable launcher scripts
+        shell: powershell
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\test-portable-unit.ps1
+
+      - name: Build portable ZIP
+        shell: powershell
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\build-portable.ps1
+
+      - name: Verify portable ZIP
+        shell: powershell
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\test-portable-integration.ps1 `
+            -ZipPath outputs\jimeng-free-api-windows-x64-portable.zip
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jimeng-free-api-windows-x64-portable
+          path: |
+            outputs/jimeng-free-api-windows-x64-portable.zip
+            outputs/jimeng-free-api-windows-x64-portable.zip.sha256.txt
+          if-no-files-found: error
+
+      - name: Upload assets to release
+        if: github.event_name == 'release'
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" `
+            outputs\jimeng-free-api-windows-x64-portable.zip `
+            outputs\jimeng-free-api-windows-x64-portable.zip.sha256.txt `
+            --clobber `
+            --repo "${{ github.repository }}"
+
+      - name: Upload assets to selected release
+        if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ inputs.tag }}" `
+            outputs\jimeng-free-api-windows-x64-portable.zip `
+            outputs\jimeng-free-api-windows-x64-portable.zip.sha256.txt `
+            --clobber `
+            --repo "${{ github.repository }}"
